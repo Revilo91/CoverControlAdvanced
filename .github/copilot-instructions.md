@@ -46,6 +46,7 @@ flowchart TD
         State["Status Dropdown<br/>(Shading / Forced / Inactive / Closed)"]
         BaseHeight["Global Shading Height"]
         Hysteresis["Binary Sensor (Shading ON/OFF)"]
+        EventButtons@{ shape: docs, label: "Buttons 1..N" }
     end
 
     subgraph EventSwitch [Event Control]
@@ -90,6 +91,7 @@ flowchart TD
     - **Hysteresis (Binary Sensor):** Shading release input (`on` = shading, `off` = no shading). When it changes from `on` to `off`, reevaluation is delayed by 4 minutes to avoid rapid toggling.
     - **Shading Height (Value):** The default target position for all covers in the room.
     - **Event Switch:** A specialized toggle that activates a secondary set of height settings, overriding the default room height.
+    - **Cover Control via events:** Cover should trigger via button press events.
     - **1:N Relationship:** A single Room manages a collection of $N$ associated Covers.
 - **Entity: Cover**
     - **Start Azimuth:** The sun's angle at which shading for this specific cover begins.
