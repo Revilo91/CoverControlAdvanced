@@ -32,8 +32,10 @@
 
 ## Validierung
 
-- Führe nach substanziellen Python-Änderungen `ruff check custom_components/` aus.
-- Wenn Änderungen Manifest, Struktur, Übersetzungen oder Home-Assistant-Metadaten betreffen, berücksichtige zusätzlich die CI-Erwartungen aus `.github/workflows/validate.yml`, insbesondere HACS-Validation und Hassfest.
+- Führe nach substanziellen Python-Änderungen `./scripts/lint.sh` aus (nutzt `ruff format --check` und `ruff check custom_components/` aus `.venv`). `./scripts/lint.sh --fix` formatiert und behebt automatisch, was möglich ist.
+- Falls `.venv` fehlt, zuerst `.devcontainer/setup.sh` ausführen (erstellt `.venv`, installiert `homeassistant` und `ruff`, verlinkt die Integration nach `.devcontainer/ha-config/custom_components/`).
+- Für einen manuellen Home-Assistant-Testlauf: `./scripts/start-ha-dev.sh` (führt Setup aus und startet HA mit `.devcontainer/ha-config`); `./scripts/stop-ha-dev.sh` zum Beenden.
+- Wenn Änderungen Manifest, Struktur, Übersetzungen oder Home-Assistant-Metadaten betreffen, berücksichtige zusätzlich die CI-Erwartungen aus `.github/workflows/validate.yml`: HACS-Validation, Hassfest und Ruff-Lint laufen dort separat gegen `custom_components/`.
 
 
 ## Visual Architecture
