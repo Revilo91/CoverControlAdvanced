@@ -36,5 +36,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install ruff
+      # Pin the version: an unpinned ruff turns CI red on every release that
+      # changes the default rule set, without any code change on our side.
+      - run: pip install ruff==0.16.1
       - run: ruff check --output-format=github custom_components/

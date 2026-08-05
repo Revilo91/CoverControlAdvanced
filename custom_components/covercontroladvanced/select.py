@@ -61,9 +61,10 @@ class CoverControlAdvancedRoomModeSelect(SelectEntity, RestoreEntity):
     async def async_added_to_hass(self) -> None:
         """Restore the previously selected option."""
         await super().async_added_to_hass()
-        if (last_state := await self.async_get_last_state()) is not None:
-            if last_state.state in self._attr_options:
-                self._attr_current_option = last_state.state
+        if (
+            last_state := await self.async_get_last_state()
+        ) is not None and last_state.state in self._attr_options:
+            self._attr_current_option = last_state.state
         self.hass.async_create_task(self._ctrl.async_trigger_evaluation())
 
     async def async_select_option(self, option: str) -> None:

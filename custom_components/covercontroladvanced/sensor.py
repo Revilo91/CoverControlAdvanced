@@ -1,5 +1,6 @@
-"""Diagnostic sensor – shows the last decision reason per cover."""
+"""Diagnostic sensor - shows the last decision reason per cover."""
 from collections.abc import Callable
+from typing import ClassVar
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.config_entries import ConfigEntry
@@ -76,7 +77,7 @@ class CoverControlAdvancedStatusSensor(SensorEntity):
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_has_entity_name = True
     _attr_translation_key = "status"
-    _attr_options = [
+    _attr_options: ClassVar[list[str]] = [
         "initializing",
         "night_window_shading",
         "door_open",
@@ -312,7 +313,7 @@ class CoverControlAdvancedContactSensor(SensorEntity):
     _attr_has_entity_name = True
     _attr_translation_key = "contact_state"
     _attr_device_class = SensorDeviceClass.ENUM
-    _attr_options = ["open", "closed"]
+    _attr_options: ClassVar[list[str]] = ["open", "closed"]
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     def __init__(
