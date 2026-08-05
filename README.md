@@ -10,14 +10,17 @@ A Home Assistant custom integration for automated cover/shutter control – conf
 - One config entry per room
 - Multiple covers per room
 - Full shading logic in Python:
-  - Night/day shading with configurable positions
+  - Day/night handling with configurable shading position
   - Window/door contact detection (multiple sensors per cover)
-  - Sun-position based shading via configured sun azimuth range (start/end degrees)
-  - Event-switch controlled shading events
-  - Cinema/event handling via a shared event switch
-  - Sleep and closed mode
-    - Shading release via binary sensor (`on` = shade allowed, `off` = shade blocked) with 4-minute off-delay
-- Diagnostic sensor per cover showing the last decision reason
+  - Sun-position based shading via a configured azimuth range, or via a dedicated sun light sensor per cover
+  - Five room modes: automatic, always active, active, inactive, closed
+  - Optional event switch with its own target position
+  - Shading release via binary sensor (`on` = shading allowed, `off` = shading blocked) with a 4-minute off-delay
+- Diagnostic sensors per cover: decision reason, live position, azimuth range, contact states
+
+> **Requirements specification:** The authoritative functional spec lives in
+> [`docs/ANFORDERUNGEN.md`](docs/ANFORDERUNGEN.md) (German). It documents every
+> configuration field, the full decision cascade and the list of open questions.
 
 ## Installation via HACS
 
@@ -40,13 +43,6 @@ Before submitting it to the default HACS store, complete the remaining GitHub-si
 
 The integration brand assets are stored in `custom_components/covercontroladvanced/brand/`.
 
-Supporting documents for the submission process:
-
-- Default store PR draft: `docs/HACS_DEFAULT_STORE_PR.md`
-- Release checklist: `docs/RELEASE_CHECKLIST.md`
-- Release notes draft: `docs/RELEASE_NOTES_1.0.0.md`
-- GitHub metadata suggestions: `docs/GITHUB_METADATA.md`
-
 ## Manual Installation
 
 ```bash
@@ -62,32 +58,42 @@ Restart HA.
 
 First configure the room-level settings, then add one or more covers to the room. Existing rooms can be extended later via the integration's configure dialog.
 
-| Field | Required | Description |
-|---|---|---|
-| Room name | ✅ | Area-based room selection shown with the friendly area name |
-| Shading hysteresis | ✅ | Binary sensor for shading (`on` = shading , `off` = no shading). `off` is delayed by 4 minutes before reevaluation. |
-| Day/night mode | ✅ | `input_boolean.day_night_mode` |
-| Shading height | ✅ | Shared target position for shading |
-| Event switch | – | `switch.*` used as the shared trigger for shading events |
-| Event switch position | – | Target position used while the event switch is active |
-| Cover entity | ✅ | The `cover.*` entity to control |
-| Window/door contacts | – | Multiple `binary_sensor.*` supported |
-| Sun azimuth start | ✅ | `0..359` degrees |
-| Sun azimuth end | ✅ | `0..359` degrees (`start > end` wraps over `0°`) |
+| Level | Field | Required | Description |
+|---|---|---|---|
+| Room | Room name | ✅ | Area-based room selection; the friendly area name is stored |
+| Room | Shading hysteresis | ✅ | `binary_sensor` with `device_class: light` (`on` = shading allowed, `off` = shading blocked). `off` is delayed by 4 minutes before reevaluation. |
+| Room | Day/night mode | ✅ | `input_boolean` (`on` = day) |
+| Room | Shading height | ✅ | Shared target position for shading, `0..100 %`, default `20` |
+| Room | Event switch | – | `switch.*` used as the shared trigger for shading events |
+| Room | Event switch position | – | Target position used while the event switch is active, default `0` |
+| Cover | Cover entity | ✅ | The `cover.*` entity to control |
+| Cover | Window/door contacts | – | Multiple `binary_sensor.*` with `device_class` `window` or `door` |
+| Cover | Sun light sensor | – | `binary_sensor` with `device_class: light`. If set, it replaces the azimuth range entirely. |
+| Cover | Sun azimuth start | – | `0..359` degrees |
+| Cover | Sun azimuth end | – | `0..359` degrees (`start > end` wraps over `0°`) |
 
 ## Decision Logic (Priority)
 
+Evaluated per cover, first match wins:
+
 ```
-1. Night + window open             → Shading height
-2. Door open (no window sensor)    → Open
-3. Night + event switch active     → Shading height
-4. Night + closed                  → Close
-5. Cinema event switch active      → Close
-6. Day + sleep mode                → Shading height
-7. Room = closed                   → Close
-8. Day + shading + sun on side     → Shading height
-9. Default                         → Day: Open / Night: Close
+1. Night + window contact configured + any contact open → Shading height
+2. Only door contacts configured + any contact open     → Open
+3. Room mode = closed                                   → Close
+4. Room mode = inactive                                 → Open
+5. Event switch active                                  → Event switch position
+6. No contact open + night                              → Close
+7. Day + (window contact or all closed) + shading       → Shading height
+8. Default                                              → Day: Open / Night: Close
+
+shading := (automatic     and hysteresis and sun on window)
+        or (always_active and                sun on window)
+        or (active)
 ```
+
+Note that the event switch (5) is evaluated *after* the contacts and room
+modes, so it has no effect while a door is open or the room mode is
+`closed`/`inactive`.
 # System Architecture:
 
 This document describes the hierarchical structure and logical dependencies of the entities for automated roller shutter and blind control (cover control) at the room level.
@@ -99,7 +105,7 @@ flowchart TD
     Room["🏠 Room"]
 
     subgraph RoomParams [Room Configuration]
-        State["Status Dropdown<br/>(Shading / Forced / Inactive / Closed)"]
+        State["Room Mode Select<br/>(automatic / always_active /<br/>active / inactive / closed)"]
         BaseHeight["Global Shading Height"]
         Hysteresis["Binary Sensor (Shading ON/OFF)"]
     end
@@ -142,12 +148,13 @@ flowchart TD
  ```
 ## Technical Specification
 - **Entity: Room**
-    - **State (Dropdown Helper):** Defines the global operating mode. Valid values: `Shading`, `Forced Shading`, `Inactive`, `Closed`.
+    - **Room Mode (Select):** Defines the global operating mode. Valid values: `automatic` (shading when hysteresis *and* sun on window), `always_active` (shading whenever the sun is on the window, hysteresis ignored), `active` (shading regardless of hysteresis and sun), `inactive` (covers open), `closed` (covers closed). Defaults to `automatic` and is restored across restarts.
     - **Hysteresis (Binary Sensor):** Shading release input (`on` = shading , `off` = no shading). When it changes from `on` to `off`, reevaluation is delayed by 4 minutes to avoid rapid toggling.
     - **Shading Height (Value):** The default target position for all covers in the room.
     - **Event Switch:** A specialized toggle that activates a secondary set of height settings, overriding the default room height.
     - **1:N Relationship:** A single Room manages a collection of $N$ associated Covers.
 - **Entity: Cover**
+    - **Sun Light Sensor:** Optional binary sensor that decides directly whether the sun hits this cover. When set, the azimuth range below is ignored.
     - **Start Azimuth:** The sun's angle at which shading for this specific cover begins.
     - **End Azimuth:** The sun's angle at which shading for this specific cover ends.
     - **1:N Relationship (Contacts):** Every cover is linked to $N$ binary sensors.
@@ -156,9 +163,15 @@ flowchart TD
         - `window`: Triggers ventilation or prevents closing if open.
         - `door`: Provides lock-out protection to prevent accidental closure while people are outside.
 
-## Diagnostic Sensor
+## Entities
 
-Each instance creates a diagnostic sensor for the configured cover and exposes the last decision reason as its `state`.
+Each config entry creates a single device with:
+
+- **Room level:** room mode `select`, shading height sensor, event switch position sensor (only when an event switch is configured)
+- **Per cover:** status sensor (the last decision reason as its `state`), sun azimuth start/end, live cover position, and the sun light sensor reference when configured
+- **Per contact:** an `open`/`closed` diagnostic sensor
+
+All sensors except the status sensor are marked as diagnostic.
 
 ## Developer Setup
 
