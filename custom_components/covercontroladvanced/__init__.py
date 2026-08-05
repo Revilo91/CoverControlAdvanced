@@ -6,7 +6,8 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import area_registry, entity_registry as er
+from homeassistant.helpers import area_registry
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity import DeviceInfo
 
 from .const import (
@@ -34,9 +35,10 @@ def _usable_name(value: str | None, entity_id: str) -> str | None:
 def entity_friendly_name(hass: HomeAssistant, entity_id: str) -> str:
     """Return the friendly name for an entity, falling back to entity_id."""
     state = hass.states.get(entity_id)
-    if state:
-        if candidate := _usable_name(state.attributes.get("friendly_name"), entity_id):
-            return candidate
+    if state and (
+        candidate := _usable_name(state.attributes.get("friendly_name"), entity_id)
+    ):
+        return candidate
 
     ent_entry = er.async_get(hass).async_get(entity_id)
     if ent_entry:
@@ -146,7 +148,7 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         data.pop("sun_azimuth_tolerance", None)
 
     if entry.version < 5:
-        # v5: room_switch is now an internal select entity – remove the old config key
+        # v5: room_switch is now an internal select entity - remove the old config key
         data.pop("room_switch", None)
 
     if entry.version < 6:

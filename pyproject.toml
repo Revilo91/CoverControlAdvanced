@@ -1,0 +1,15 @@
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+# Explicit rule set. Without this, ruff applies its built-in default set,
+# which changes between releases and turns CI red without a code change.
+select = [
+    "E4",   # pycodestyle: imports
+    "E7",   # pycodestyle: statements
+    "E9",   # pycodestyle: runtime errors
+    "F",    # pyflakes
+    "I",    # isort
+    "SIM",  # flake8-simplify
+    "RUF",  # ruff-specific rules
+]

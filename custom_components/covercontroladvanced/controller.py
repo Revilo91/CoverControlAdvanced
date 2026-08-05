@@ -3,7 +3,8 @@ from collections.abc import Callable
 from datetime import timedelta
 from typing import TYPE_CHECKING
 
-from homeassistant.components.cover import DOMAIN as COVER_DOMAIN, CoverEntityFeature
+from homeassistant.components.cover import DOMAIN as COVER_DOMAIN
+from homeassistant.components.cover import CoverEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_SUPPORTED_FEATURES, STATE_ON
 from homeassistant.core import Event, HomeAssistant, callback
@@ -78,11 +79,10 @@ class CoverControlAdvancedController:
                         lambda _: self.hass.create_task(self._evaluate()),
                     )
                     return
-                if new == STATE_ON and old != STATE_ON:
+                if new == STATE_ON and old != STATE_ON and self._shading_off_unsub:
                     # off→on: immediate evaluation, cancel pending task
-                    if self._shading_off_unsub:
-                        self._shading_off_unsub()
-                        self._shading_off_unsub = None
+                    self._shading_off_unsub()
+                    self._shading_off_unsub = None
 
             self.hass.create_task(self._evaluate())
 
