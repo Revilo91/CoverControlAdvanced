@@ -1,5 +1,11 @@
 # Projekt-Richtlinien
 
+## Fachliche Referenz
+
+- Maßgeblich für das fachliche Verhalten ist `docs/ANFORDERUNGEN.md`. Dieses Dokument beschreibt Konfigurationsvertrag, Raummodi, Auswertungs-Trigger, Entscheidungskaskade, erzeugte Entitäten und offene Punkte mit referenzierbaren IDs (`FA-`, `NFA-`, `OP-`).
+- Prüfe vor fachlichen Änderungen die betroffene Anforderung und ziehe das Dokument bei jeder Verhaltensänderung nach. Die Entscheidungskaskade in `controller.py` ist in FA-24 normativ festgehalten.
+- Diese Datei regelt Code-Konventionen, nicht das Fachverhalten. Bei Widerspruch gilt für Fachfragen `docs/ANFORDERUNGEN.md`.
+
 ## Geltungsbereich
 
 - Dieses Repository enthält eine Home-Assistant-Custom-Integration mit UI-basierter Einrichtung über Config Entries. Führe keine YAML-only-Konfiguration ein, außer wenn die Aufgabe das ausdrücklich verlangt.
@@ -43,7 +49,7 @@ flowchart TD
     Room["🏠 Room"]
 
     subgraph RoomParams [Room Configuration]
-        State["Status Dropdown<br/>(Shading / Forced / Inactive / Closed)"]
+        State["Raummodus (Select)<br/>(automatic / always_active /<br/>active / inactive / closed)"]
         BaseHeight["Global Shading Height"]
         Hysteresis["Binary Sensor (Shading ON/OFF)"]
         EventButtons@{ shape: docs, label: "Buttons 1..N" }
@@ -87,7 +93,7 @@ flowchart TD
  ```
 ## Technical Specification (Copilot Context)
 - **Entity: Room**
-    - **State (Dropdown Helper):** Defines the global operating mode. Valid values: `Shading`, `Forced Shading`, `Inactive`, `Closed`.
+    - **Room Mode (Select):** Defines the global operating mode. Valid values: `automatic`, `always_active`, `active`, `inactive`, `closed` (see FA-17 in `docs/ANFORDERUNGEN.md`).
     - **Hysteresis (Binary Sensor):** Shading release input (`on` = shading, `off` = no shading). When it changes from `on` to `off`, reevaluation is delayed by 4 minutes to avoid rapid toggling.
     - **Shading Height (Value):** The default target position for all covers in the room.
     - **Event Switch:** A specialized toggle that activates a secondary set of height settings, overriding the default room height.
