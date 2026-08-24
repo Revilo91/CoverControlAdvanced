@@ -58,6 +58,8 @@ Restart HA.
 
 First configure the room-level settings, then add one or more covers to the room. Existing rooms can be extended later via the integration's configure dialog.
 
+When at least one room is already configured, the setup wizard offers to copy an existing room's settings as a template — pick it and only the cover and window/door contacts need to be selected for the new room. All copied values remain editable afterwards via the configure dialog.
+
 | Level | Field | Required | Description |
 |---|---|---|---|
 | Room | Room name | ✅ | Area-based room selection; the friendly area name is stored |

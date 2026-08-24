@@ -3,9 +3,19 @@
     "step": {
       "user": {
         "title": "Set up Room",
-        "description": "Configure the room for shading control.",
+        "description": "Select the room. To reuse the settings of an already configured room, pick it as a template — you'll then only need to select the cover and window sensors.",
         "data": {
           "room_name": "Room name",
+          "clone_from": "Copy settings from"
+        },
+        "data_description": {
+          "clone_from": "Copies the shading, day/night and event switch settings from the selected room. You can still adjust them afterwards via the room's configuration options."
+        }
+      },
+      "room_details": {
+        "title": "Room Settings",
+        "description": "Configure the room for shading control.",
+        "data": {
           "shading_hysteresis": "Shading hysteresis sensor",
           "day_night_mode": "Day/night mode",
           "shading_height": "Shading height (%)",

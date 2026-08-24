@@ -1,6 +1,6 @@
 # Anforderungen – Cover Control Advanced
 
-**Version:** 1.0 · **Stand:** 2026-08-05 · **Bezugsstand Code:** Config-Entry-Version 7, Manifest 1.0.0
+**Version:** 1.1 · **Stand:** 2026-08-24 · **Bezugsstand Code:** Config-Entry-Version 7, Manifest 1.0.0
 
 ---
 
@@ -114,6 +114,7 @@ Die Konfiguration erfolgt ausschließlich über die Home-Assistant-Oberfläche (
 | FA-09 | Cover | `sun_azimuth_sensor` | – | `binary_sensor`, `device_class=light` | – |
 | FA-10 | Cover | `sun_azimuth_start` | – | 0–359° | – |
 | FA-11 | Cover | `sun_azimuth_end` | – | 0–359° | – |
+| FA-17 | Flow (nicht persistiert) | `clone_from` | – | Auswahl eines bestehenden Config Entry als Vorlage | „kein Vorlage“ |
 
 Die Covers eines Raums liegen als Liste unter dem Schlüssel `covers` im Config Entry.
 
@@ -172,6 +173,10 @@ Beim Bearbeiten eines Covers bleiben bereits konfigurierte Entitäten in der Aus
 
 **FA-16 — Options Flow** `[STATUS: umgesetzt]`
 Über den Konfigurationsdialog stehen zur Verfügung: Raumeigenschaften bearbeiten, Rolllade hinzufügen, vorhandene Rolllade bearbeiten (nur wenn mindestens eine existiert), Änderungen speichern. Änderungen werden erst beim Abschluss geschrieben und lösen dann einen Reload des Config Entry aus. Ohne Änderung erfolgt kein Reload.
+
+**FA-17 — Raum als Vorlage klonen** `[STATUS: umgesetzt]`
+Existiert mindestens ein Config Entry dieser Integration, bietet der erste Schritt der Ersteinrichtung zusätzlich zur Area-Auswahl eine Vorlagenauswahl ("Einstellungen übernehmen von") mit allen vorhandenen Räumen. Wird ein Raum als Vorlage gewählt, werden dessen Raumebene-Einstellungen (FA-02 bis FA-06) unverändert übernommen; die Eingabemaske für diese Felder entfällt. Der anschließende Cover-Schritt übernimmt zusätzlich die Sonnenstandsfelder (FA-09 bis FA-11) der ersten Rolllade der Vorlage als Vorbelegung. Cover-Entität und Fenster-/Türkontakte (FA-07, FA-08) werden nie vorbelegt und müssen für jeden neuen Raum explizit gewählt werden. Alle übernommenen Werte bleiben nachträglich über den Options Flow änderbar. Ohne vorhandenes Config Entry entfällt die Vorlagenauswahl.
+*Kriterium:* Beim Klonen eines Raums mit einer Rolllade muss der Anwender im gesamten Einrichtungsdialog nur noch Area, Vorlage, Cover-Entität und Fenster-/Türkontakte auswählen.
 
 ---
 
@@ -393,4 +398,5 @@ Die folgenden Funktionen sind **nicht** Bestandteil dieser Anforderung und wurde
 
 | Version | Datum | Änderung |
 |---|---|---|
+| 1.1 | 2026-08-24 | FA-17 ergänzt: Klonen eines Raums als Vorlage bei der Ersteinrichtung |
 | 1.0 | 2026-08-05 | Erstfassung: Ist-Stand vollständig erfasst, offene Punkte OP-01 bis OP-12 aufgenommen |
