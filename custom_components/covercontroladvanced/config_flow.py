@@ -35,46 +35,6 @@ STEP_FINISH = "finish"
 CLONE_FROM_NONE = ""
 CONF_CLONE_FROM = "clone_from"
 
-_ROOM_DETAILS_SCHEMA = vol.Schema(
-    {
-        vol.Required(
-            CONF_SHADING_HYSTERESIS,
-            default="",
-        ): selector.EntitySelector(
-            selector.EntitySelectorConfig(
-                domain="binary_sensor", device_class=["light"]
-            )
-        ),
-        vol.Required(
-            CONF_DAY_NIGHT_MODE,
-            default="",
-        ): selector.EntitySelector(
-            selector.EntitySelectorConfig(domain="input_boolean")
-        ),
-        vol.Required(CONF_SHADING_HEIGHT, default=20): selector.NumberSelector(
-            selector.NumberSelectorConfig(
-                min=0,
-                max=100,
-                step=1,
-                unit_of_measurement="%",
-                mode=selector.NumberSelectorMode.SLIDER,
-            )
-        ),
-        vol.Optional(CONF_EVENT_SWITCH): selector.EntitySelector(
-            selector.EntitySelectorConfig(domain="switch")
-        ),
-        vol.Optional(CONF_EVENT_SWITCH_POSITION, default=0): selector.NumberSelector(
-            selector.NumberSelectorConfig(
-                min=0,
-                max=100,
-                step=1,
-                unit_of_measurement="%",
-                mode=selector.NumberSelectorMode.SLIDER,
-            )
-        ),
-    }
-)
-
 
 def _user_schema(hass: HomeAssistant | None) -> vol.Schema:
     """Room selector, plus a template picker when other rooms already exist."""
@@ -128,6 +88,136 @@ def _get_area_entities(
         if effective_area == area_id:
             result.append(entry.entity_id)
     return result
+
+
+def _room_entity_fields(
+    hass: HomeAssistant | None, area_id: str | None, data: dict
+) -> dict:
+    """Area-prefiltered hysteresis/day-night/event-switch fields.
+
+    Shared by the initial setup's room-details step and the options flow's
+    room-properties step, so entity pickers only list what's assigned to the
+    room's area (falling back to the unfiltered domain when the area has no
+    match, same as the cover step).
+    """
+    hysteresis_in_area: list[str] = (
+        _get_area_entities(hass, area_id, "binary_sensor", ["light"])
+        if hass is not None and area_id is not None
+        else []
+    )
+    day_night_in_area: list[str] = (
+        _get_area_entities(hass, area_id, "input_boolean")
+        if hass is not None and area_id is not None
+        else []
+    )
+    event_switch_in_area: list[str] = (
+        _get_area_entities(hass, area_id, "switch")
+        if hass is not None and area_id is not None
+        else []
+    )
+
+    current_hysteresis = data.get(CONF_SHADING_HYSTERESIS, "")
+    if not current_hysteresis and len(hysteresis_in_area) == 1:
+        current_hysteresis = hysteresis_in_area[0]
+    if hysteresis_in_area:
+        hysteresis_selector = selector.EntitySelector(
+            selector.EntitySelectorConfig(
+                domain="binary_sensor",
+                device_class=["light"],
+                include_entities=(
+                    [current_hysteresis, *hysteresis_in_area]
+                    if current_hysteresis
+                    and current_hysteresis not in hysteresis_in_area
+                    else hysteresis_in_area
+                ),
+            )
+        )
+    else:
+        hysteresis_selector = selector.EntitySelector(
+            selector.EntitySelectorConfig(
+                domain="binary_sensor", device_class=["light"]
+            )
+        )
+
+    current_day_night = data.get(CONF_DAY_NIGHT_MODE, "")
+    if not current_day_night and len(day_night_in_area) == 1:
+        current_day_night = day_night_in_area[0]
+    if day_night_in_area:
+        day_night_selector = selector.EntitySelector(
+            selector.EntitySelectorConfig(
+                domain="input_boolean",
+                include_entities=(
+                    [current_day_night, *day_night_in_area]
+                    if current_day_night and current_day_night not in day_night_in_area
+                    else day_night_in_area
+                ),
+            )
+        )
+    else:
+        day_night_selector = selector.EntitySelector(
+            selector.EntitySelectorConfig(domain="input_boolean")
+        )
+
+    current_event_switch = data.get(CONF_EVENT_SWITCH)
+    if event_switch_in_area:
+        event_switch_selector = selector.EntitySelector(
+            selector.EntitySelectorConfig(
+                domain="switch",
+                include_entities=(
+                    [current_event_switch, *event_switch_in_area]
+                    if current_event_switch
+                    and current_event_switch not in event_switch_in_area
+                    else event_switch_in_area
+                ),
+            )
+        )
+    else:
+        event_switch_selector = selector.EntitySelector(
+            selector.EntitySelectorConfig(domain="switch")
+        )
+    event_switch_description = (
+        {"suggested_value": current_event_switch} if current_event_switch else None
+    )
+
+    return {
+        vol.Required(
+            CONF_SHADING_HYSTERESIS, default=current_hysteresis
+        ): hysteresis_selector,
+        vol.Required(
+            CONF_DAY_NIGHT_MODE, default=current_day_night
+        ): day_night_selector,
+        vol.Required(
+            CONF_SHADING_HEIGHT, default=data.get(CONF_SHADING_HEIGHT, 20)
+        ): selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=0,
+                max=100,
+                step=1,
+                unit_of_measurement="%",
+                mode=selector.NumberSelectorMode.SLIDER,
+            )
+        ),
+        vol.Optional(
+            CONF_EVENT_SWITCH, description=event_switch_description
+        ): event_switch_selector,
+        vol.Optional(
+            CONF_EVENT_SWITCH_POSITION, default=data.get(CONF_EVENT_SWITCH_POSITION, 0)
+        ): selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=0,
+                max=100,
+                step=1,
+                unit_of_measurement="%",
+                mode=selector.NumberSelectorMode.SLIDER,
+            )
+        ),
+    }
+
+
+def _room_details_schema(
+    hass: HomeAssistant | None = None, area_id: str | None = None
+) -> vol.Schema:
+    return vol.Schema(_room_entity_fields(hass, area_id, {}))
 
 
 def _cover_schema(
@@ -349,62 +439,16 @@ def _cover_schema_with_defaults(
     )
 
 
-def _room_options_schema(data: dict) -> vol.Schema:
-    event_switch = data.get(CONF_EVENT_SWITCH)
-    event_switch_description = (
-        {"suggested_value": event_switch} if event_switch else None
-    )
-
+def _room_options_schema(
+    hass: HomeAssistant | None, area_id: str | None, data: dict
+) -> vol.Schema:
     return vol.Schema(
         {
             vol.Required(
                 CONF_ROOM_NAME,
                 default=data.get(CONF_ROOM_NAME, ""),
             ): selector.TextSelector(),
-            vol.Required(
-                CONF_SHADING_HYSTERESIS,
-                default=data.get(CONF_SHADING_HYSTERESIS, ""),
-            ): selector.EntitySelector(
-                selector.EntitySelectorConfig(
-                    domain="binary_sensor", device_class=["light"]
-                )
-            ),
-            vol.Required(
-                CONF_DAY_NIGHT_MODE,
-                default=data.get(CONF_DAY_NIGHT_MODE, ""),
-            ): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="input_boolean")
-            ),
-            vol.Required(
-                CONF_SHADING_HEIGHT,
-                default=data.get(CONF_SHADING_HEIGHT, 20),
-            ): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=0,
-                    max=100,
-                    step=1,
-                    unit_of_measurement="%",
-                    mode=selector.NumberSelectorMode.SLIDER,
-                )
-            ),
-            vol.Optional(
-                CONF_EVENT_SWITCH,
-                description=event_switch_description,
-            ): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="switch")
-            ),
-            vol.Optional(
-                CONF_EVENT_SWITCH_POSITION,
-                default=data.get(CONF_EVENT_SWITCH_POSITION, 0),
-            ): selector.NumberSelector(
-                selector.NumberSelectorConfig(
-                    min=0,
-                    max=100,
-                    step=1,
-                    unit_of_measurement="%",
-                    mode=selector.NumberSelectorMode.SLIDER,
-                )
-            ),
+            **_room_entity_fields(hass, area_id, data),
         }
     )
 
@@ -510,7 +554,8 @@ class CoverControlAdvancedConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return await self.async_step_cover()
 
         return self.async_show_form(
-            step_id="room_details", data_schema=_ROOM_DETAILS_SCHEMA
+            step_id="room_details",
+            data_schema=_room_details_schema(self.hass, self._area_id),
         )
 
     async def async_step_cover(self, user_input=None):
@@ -579,7 +624,9 @@ class CoverControlAdvancedOptionsFlow(config_entries.OptionsFlowWithConfigEntry)
 
         return self.async_show_form(
             step_id="room",
-            data_schema=_room_options_schema(self._working_data),
+            data_schema=_room_options_schema(
+                self.hass, self._get_area_id(), self._working_data
+            ),
         )
 
     async def async_step_cover(self, user_input=None):
