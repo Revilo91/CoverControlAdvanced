@@ -3,9 +3,19 @@
     "step": {
       "user": {
         "title": "Raum einrichten",
-        "description": "Konfiguriere den Raum für die Beschattungssteuerung.",
+        "description": "Wähle den Raum aus. Um die Einstellungen eines bereits eingerichteten Raums zu übernehmen, wähle ihn als Vorlage aus – du musst dann nur noch Rolllade und Fensterkontakte auswählen.",
         "data": {
           "room_name": "Raumname",
+          "clone_from": "Einstellungen übernehmen von"
+        },
+        "data_description": {
+          "clone_from": "Übernimmt die Beschattungs-, Tag/Nacht- und Event-Schalter-Einstellungen des ausgewählten Raums. Du kannst sie anschließend über die Konfigurationsoptionen des Raums weiterhin anpassen."
+        }
+      },
+      "room_details": {
+        "title": "Raumeinstellungen",
+        "description": "Konfiguriere den Raum für die Beschattungssteuerung.",
+        "data": {
           "shading_hysteresis": "Beschattungshysterese-Sensor",
           "day_night_mode": "Tag/Nacht-Modus",
           "shading_height": "Beschattungshöhe (%)",

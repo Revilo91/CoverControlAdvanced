@@ -56,7 +56,9 @@ Restart HA.
 
 **Settings → Integrations → + Add → Cover Control**
 
-First configure the room-level settings, then add one or more covers to the room. Existing rooms can be extended later via the integration's configure dialog.
+First pick the room, then configure the room-level settings, then add one or more covers to the room. Existing rooms can be extended later via the integration's configure dialog. Once the room is picked, the shading hysteresis, day/night, event switch, cover and window/door contact pickers are all pre-filtered to entities assigned to that room's area (falling back to the full list when the area has none), and a field with exactly one matching entity is pre-selected.
+
+When at least one room is already configured, the setup wizard offers to copy an existing room's settings as a template — pick it and only the cover and window/door contacts need to be selected for the new room. All copied values remain editable afterwards via the configure dialog.
 
 | Level | Field | Required | Description |
 |---|---|---|---|
